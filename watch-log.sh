@@ -36,6 +36,21 @@ case "$cmd" in
     gh run watch "$run_id" --exit-status
     gh run view "$run_id" --log
     ;;
+  tail)
+    # 持续监控：每次 Actions 跑完一轮，就打印一次这轮的结果，类似 tail -f
+    last=""
+    while true; do
+      run_id=$(gh run list --workflow=watch.yml --status completed --limit 1 --json databaseId --jq '.[0].databaseId')
+      if [ -n "$run_id" ] && [ "$run_id" != "$last" ]; then
+        last="$run_id"
+        echo "===== run $run_id ====="
+        gh run view "$run_id" --log | grep -F "Run watcher" \
+          | sed -E 's/^[^\t]+\tRun watcher\t[^Z]+Z //' \
+          | grep -E '^(\[[0-9]{4}-|  [0-9]{4}-|    )'
+      fi
+      sleep 30
+    done
+    ;;
   *)
     gh run view "$cmd" --log
     ;;
