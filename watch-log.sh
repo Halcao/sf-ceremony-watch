@@ -38,15 +38,16 @@ case "$cmd" in
     ;;
   tail)
     # 持续监控：每次 Actions 跑完一轮，就打印一次这轮的结果，类似 tail -f
+    # 单次网络抖动（gh 请求失败）不应该把整个监控进程带崩，所以这里不用 set -e，全部手动兜底。
     last=""
     while true; do
-      run_id=$(gh run list --workflow=watch.yml --status completed --limit 1 --json databaseId --jq '.[0].databaseId')
+      run_id=$(gh run list --workflow=watch.yml --status completed --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null) || run_id=""
       if [ -n "$run_id" ] && [ "$run_id" != "$last" ]; then
         last="$run_id"
         echo "===== run $run_id ====="
-        gh run view "$run_id" --log | grep -F "Run watcher" \
+        gh run view "$run_id" --log 2>/dev/null | grep -F "Run watcher" \
           | sed -E 's/^[^\t]+\tRun watcher\t[^Z]+Z //' \
-          | grep -E '^(\[[0-9]{4}-|  [0-9]{4}-|    )'
+          | grep -E '^(\[[0-9]{4}-|  [0-9]{4}-|    )' || echo "(本轮日志获取失败，下次轮询重试)"
       fi
       sleep 30
     done
