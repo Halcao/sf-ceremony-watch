@@ -1,4 +1,7 @@
 {
-  "notified_relaxed_dates": [],
+  "notified_relaxed_dates": [
+    "10/5/2026",
+    "10/6/2026"
+  ],
   "notified_target_dates": []
 }
